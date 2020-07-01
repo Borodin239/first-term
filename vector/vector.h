@@ -38,7 +38,7 @@ struct vector {
     void reserve(std::size_t val);              // O(N) strong  выделяет val памяти, если выделено меньше
     void shrink_to_fit();
 
-    void clear();                               // O(N) nothrow отчищает занимаемую память
+    void clear();                      // O(N) nothrow отчищает занимаемую память
 
     void swap(vector &other);                   // O(1) nothrow меняет местами два вектора
 
@@ -57,6 +57,8 @@ struct vector {
 private:
     void push_back_realloc(T const &val);       // O(N) nothrow добавление нового элемента с расширением размера вектора
     void new_buffer(std::size_t new_capacity);  // O(N) weak изменение вместимости вектора
+
+    void clear_elements();                      // Для устранения копипасты
 
 private:
     T *data_;
@@ -109,9 +111,7 @@ vector<T> &vector<T>::operator=(const vector &other) {
 
 template<typename T>
 vector<T>::~vector() {
-    for (size_t i = 0; i != size_; i++) {
-        data_[i].~T();
-    }
+    clear_elements();
     operator delete(data_);
 }
 
@@ -164,7 +164,6 @@ T const &vector<T>::back() const {
 
 template<typename T>
 void vector<T>::push_back(const T &val) {
-    T temp = val;
     if (size_ != capacity_) {
         new(data_ + size_) T(val);
     } else {
@@ -205,9 +204,7 @@ void vector<T>::shrink_to_fit() {
 
 template<typename T>
 void vector<T>::clear() {
-    for (int i = 0; i < size_; i++) {
-        data_[i].~T();
-    }
+    clear_elements();
     size_ = 0;
 }
 
@@ -251,7 +248,7 @@ typename vector<T>::iterator vector<T>::insert(vector::const_iterator pos, const
     }
 
     new(data_ + size_) T();
-    for (int i = size_; i > index; i--) {
+    for (int32_t i = size_; i > index; i--) {
         data_[i] = data_[i - 1];
     }
     data_[index] = val;
@@ -266,20 +263,20 @@ typename vector<T>::iterator vector<T>::erase(vector::const_iterator pos) {
 
 template<typename T>
 typename vector<T>::iterator vector<T>::erase(vector::const_iterator first, vector::const_iterator last) {
-    int from = first - data_;
-    int to = last - data_;
+    int32_t from = first - data_;
+    int32_t to = last - data_;
 
     assert (size_ != 0);
     assert (0 <= from && from <= size_);   // Не уверен в корректности этой и следующей проверки
     assert (0 <= to && to <= size_);
     assert (from <= to);
 
-    int delta = to - from;
-    for (int i = from; i < size_ - delta; i++) {
+    int32_t delta = to - from;
+    for (int32_t i = from; i < size_ - delta; i++) {
         std::swap(data_[i], data_[i + delta]);
     }
 
-    for (int i = size_ - delta; i < size_; i++) {
+    for (int32_t i = size_ - delta; i < size_; i++) {
         data_[i].~T();
     }
     size_ -= delta;
@@ -320,6 +317,13 @@ void vector<T>::new_buffer(std::size_t new_capacity) {
     this->~vector();
     data_ = new_data;
     capacity_ = new_capacity;
+}
+
+template<typename T>
+void vector<T>::clear_elements() {
+    for (int32_t i = size_ - 1; i > -1; i--) {
+        data_[i].~T();
+    }
 }
 
 #endif

@@ -326,7 +326,7 @@ TEST(correctness, erase) {
   size_t const N = 500;
   {
     for (size_t i = 0; i != N; ++i) {
-      vector<element<size_t>> a;
+      vector<element<size_t> > a;
       for (size_t j = 0; j != N; ++j) a.push_back(2 * j + 1);
 
       a.erase(a.begin() + i);
@@ -358,7 +358,7 @@ TEST(correctness, erase_begin) {
 TEST(correctness, erase_end) {
   size_t const N = 500;
   {
-    vector<element<size_t>> a;
+    vector<element<size_t> > a;
 
     for (size_t i = 0; i != 2 * N; ++i) a.push_back(2 * i + 1);
 
@@ -372,7 +372,7 @@ TEST(correctness, erase_end) {
 TEST(correctness, erase_range_begin) {
   size_t const N = 500, K = 100;
   {
-    vector<element<size_t>> a;
+    vector<element<size_t> > a;
 
     for (size_t i = 0; i != N; ++i) a.push_back(2 * i + 1);
 
@@ -386,7 +386,7 @@ TEST(correctness, erase_range_begin) {
 TEST(correctness, erase_range_middle) {
   size_t const N = 500, K = 100;
   {
-    vector<element<size_t>> a;
+    vector<element<size_t> > a;
 
     for (size_t i = 0; i != N; ++i) a.push_back(2 * i + 1);
 
@@ -401,7 +401,7 @@ TEST(correctness, erase_range_middle) {
 TEST(correctness, erase_range_end) {
   size_t const N = 500, K = 100;
   {
-    vector<element<size_t>> a;
+    vector<element<size_t> > a;
 
     for (size_t i = 0; i != N; ++i) a.push_back(2 * i + 1);
 
@@ -415,7 +415,7 @@ TEST(correctness, erase_range_end) {
 TEST(correctness, erase_range_all) {
   size_t const N = 500;
   {
-    vector<element<size_t>> a;
+    vector<element<size_t> > a;
 
     for (size_t i = 0; i != N; ++i) a.push_back(2 * i + 1);
 
@@ -429,7 +429,7 @@ TEST(correctness, erase_range_all) {
 
 TEST(correctness, erase_big_range) {
   {
-    vector<element<size_t>> c;
+    vector<element<size_t> > c;
     for (size_t i = 0; i != 100; ++i) {
       for (size_t j = 0; j != 50000; ++j) c.push_back(j);
       c.erase(c.begin() + 100, c.end() - 100);

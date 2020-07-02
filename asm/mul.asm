@@ -190,7 +190,7 @@ mul_long_short:
                 adc             rdx, 0          ; adc учитывает бит переноса
                 mov             [rdi], rax
                 add             rdi, 8
-                mov             rsi, rdxы
+                mov             rsi, rdx
                 dec             rcx
                 jnz             .loop
                 

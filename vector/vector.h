@@ -67,11 +67,7 @@ private:
 };
 
 template<typename T>
-vector<T>::vector() {
-    capacity_ = 0;
-    size_ = 0;
-    data_ = nullptr;
-}
+vector<T>::vector() : capacity_(0), size_(0), data_(0) {}  // Применил member initializer list
 
 template<typename T>
 bool vector<T>::empty() const {
@@ -115,15 +111,15 @@ vector<T>::~vector() {
     operator delete(data_);
 }
 
+// Убрал лишний assert
 template<typename T>
 T &vector<T>::operator[](std::size_t i) {
-    assert(i < size_);
     return data_[i];
 }
 
+// Убрал лишний assert
 template<typename T>
 T const &vector<T>::operator[](std::size_t i) const {
-    assert(i < size_);
     return data_[i];
 }
 
@@ -172,10 +168,9 @@ void vector<T>::push_back(const T &val) {
     ++size_;
 }
 
+// Убрал лишний assert
 template<typename T>
 void vector<T>::pop_back() {
-    assert(size_ != 0);
-
     data_[size_ - 1].~T();
     --size_;
 }
@@ -194,12 +189,13 @@ void vector<T>::reserve(std::size_t val) {
 
 template<typename T>
 void vector<T>::shrink_to_fit() {
-    if (size_ == capacity_) {
-        return;
+    if (empty()) {
+        vector<T> temp;
+        swap(temp);
     }
-
-    vector temp = (*this);
-    swap(temp);
+    if (size_ != capacity_) {
+        new_buffer(size_);
+    }
 }
 
 template<typename T>
@@ -235,11 +231,10 @@ typename vector<T>::const_iterator vector<T>::end() const {
     return data_ + size_;
 }
 
+// Убрал лишний assert и int32_t на ptrdiff_t поменял
 template<typename T>
 typename vector<T>::iterator vector<T>::insert(vector::const_iterator pos, const T &val) {
-    int index = pos - data_;
-
-    assert(index >= 0 && index <= size_);
+    ptrdiff_t index = pos - data_;
 
     if (capacity_ == 0) {
         new_buffer(2);
@@ -261,23 +256,18 @@ typename vector<T>::iterator vector<T>::erase(vector::const_iterator pos) {
     return erase(pos, pos + 1);
 }
 
+// Убрал лишние assert, заменил int32_t на ptrdiff_t, ибо операция с указателями
 template<typename T>
 typename vector<T>::iterator vector<T>::erase(vector::const_iterator first, vector::const_iterator last) {
-    int32_t from = first - data_;
-    int32_t to = last - data_;
+    ptrdiff_t to = last - data_;
+    ptrdiff_t delta = last - first;
 
-    assert (size_ != 0);
-    assert (0 <= from && from <= size_);   // Не уверен в корректности этой и следующей проверки
-    assert (0 <= to && to <= size_);
-    assert (from <= to);
-
-    int32_t delta = to - from;
-    for (int32_t i = from; i < size_ - delta; i++) {
+    for (int32_t i = first - data_; i < size_ - delta; i++) {
         std::swap(data_[i], data_[i + delta]);
     }
 
-    for (int32_t i = size_ - delta; i < size_; i++) {
-        data_[i].~T();
+    for (ptrdiff_t i = 1; i <= delta; i++) {
+        data_[size_ - i].~T();
     }
     size_ -= delta;
     return data_ + to;

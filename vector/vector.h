@@ -88,7 +88,10 @@ vector<T>::vector(const vector &other) {  // strong
                 new(data_ + i) T(other.data()[i]);
             }
         } catch (...) {
-            clear_elements(i - 1, i);
+            while (i != 0) {
+                data_[i - 1].~T();
+                --i;
+            }
             operator delete(data_);
             throw;
         }
@@ -260,7 +263,10 @@ typename vector<T>::iterator vector<T>::erase(vector::const_iterator first, vect
         std::swap(data_[i], data_[i + delta]);
     }
 
-    clear_elements(size_ - 1, delta);
+    for (ptrdiff_t i = 1; i <= delta; i++) {
+        data_[size_ - i].~T();
+    }
+    //clear_elements(size_ - 1, delta);
     size_ -= delta;
     return data_ + to;
 }

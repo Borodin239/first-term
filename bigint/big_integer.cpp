@@ -279,11 +279,13 @@ big_integer operator|(big_integer first, const big_integer &second) {
 }
 
 big_integer operator<<(big_integer first, int32_t second) {
-    first *= 1 << (second % 32);
+    bool sign = first.is_negative_;
+    first = first * static_cast<uint32_t>(1 << (second % 32));
     if (second > 32 && first != 0) {
         second /= 32;
         first.digits_.insert(first.digits_.begin(), second, 0);
     }
+    first.is_negative_ = sign;
     return first;
 }
 
@@ -342,6 +344,7 @@ big_integer operator+(big_integer first, const big_integer &second) {
         shift = res / POW2;
     }
     answer.digits_.push_back(shift);
+    answer.is_negative_ = first.is_negative_;
     return answer.trim();
 }
 

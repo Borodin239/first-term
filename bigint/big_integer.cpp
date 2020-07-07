@@ -30,13 +30,15 @@ big_integer::big_integer(std::string const &str) : digits_(1, 0) {
     size_t pos = 0;
     is_negative_ = false;
     if (str[0] == '-') {
-        is_negative_ = true;
         pos++;
     }
     while (pos < str.size()) {
         *this *= 10;
         *this += (str[pos] - '0');
         pos++;
+    }
+    if (str[0] == '-') {
+        is_negative_ = true;
     }
 }
 
@@ -377,7 +379,7 @@ big_integer operator-(big_integer first, const big_integer &second) {
         }
     }
 
-    return first;
+    return first.trim();
 }
 
 big_integer operator*(big_integer first, const big_integer &second) {
@@ -436,27 +438,25 @@ big_integer operator/(big_integer first, const big_integer &second) {
         std::reverse(answer.digits_.begin(), answer.digits_.end());
     } else {
         big_integer dq;
-        first.digits_.push_back(0);
-        size_t m = second.digits_.size();
-        size_t n = first.digits_.size();
+        a.digits_.push_back(0);
+        size_t m = b.digits_.size();
+        size_t n = a.digits_.size();
         answer.digits_.resize(n - m);
         uint32_t qt = 0;
         size_t j = answer.digits_.size() - 1;
-        size_t i = n - m + 1;
-        while (i != 0) {
-            qt = trial(first, second);
-            dq = second * qt;
-            if (!smaller(first, dq, m + 1)) {
+        for (size_t i = m + 1; i <= n; i++) {
+            qt = trial(a, b);
+            dq = b * qt;
+            if (!smaller(a, dq, m + 1)) {
                 qt--;
-                dq = second * qt;
+                dq = b * qt;
             }
             answer.digits_[j] = qt;
-            difference(first, dq, m + 1);
-            if (first.digits_.size() != 0) {
-                first.digits_.pop_back();
+            difference(a, dq, m + 1);
+            if (a.digits_.size() != 0) {
+                a.digits_.pop_back();
             }
             j--;
-            i--;
         }
     }
     return answer.trim();
@@ -508,6 +508,9 @@ big_integer operator%(big_integer first, const big_integer &second) {
 std::string to_string(const big_integer &number) {
     big_integer temp(number);
     std::string answer;
+    if (temp == 0) {
+        return "0";
+    }
     while (temp != 0) {
         answer += static_cast<char>('0' + (temp % 10).digits_[0]);
         temp /= 10;

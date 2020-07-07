@@ -191,34 +191,7 @@ bool operator!=(big_integer const &first, big_integer const &second) {
     return !(first == second);
 }
 
-big_integer operator&(big_integer first, const big_integer &second) {
-    size_t max_size = std::max(first.digits_.size(), second.digits_.size());
-    big_integer answer = first;
-    answer.digits_.resize(max_size);
-    size_t i = 0;
-    for (; i < max_size && i < second.digits_.size(); i++) {
-        answer.digits_[i] &= second.digits_[i];
-    }
-    while (i != answer.digits_.size()) {
-        answer.digits_.pop_back();
-    }
-    answer.is_negative_ = (second.is_negative_ || answer.is_negative_);
-    return answer.trim();
-}
 
-
-big_integer operator|(big_integer first, const big_integer &second) {
-    size_t max_size = std::max(first.digits_.size(), second.digits_.size());
-    if (max_size != first.digits_.size()) {
-        first.digits_.resize(max_size);
-    }
-    size_t i = 0;
-    for (; i < max_size && i < second.digits_.size(); i++) {
-        first.digits_[i] |= second.digits_[i];
-    }
-    first.is_negative_ = second.is_negative_ && first.is_negative_;
-    return first.trim();
-}
 
 // Убирает лишние 0 вначале числа
 big_integer &big_integer::trim() {
@@ -238,9 +211,6 @@ big_integer &big_integer::trim() {
 }
 
 
-big_integer operator^(big_integer first, const big_integer &second) {
-    return (first - -second).trim();
-}
 
 uint32_t get_operation(uint32_t first, uint32_t second, char operation) {
     if (operation == '&') {
@@ -252,7 +222,7 @@ uint32_t get_operation(uint32_t first, uint32_t second, char operation) {
     return first ^ second;
 }
 
-big_integer binary_operations(big_integer &first, big_integer &second, char operation) {
+big_integer binary_operations(big_integer first, const big_integer &second, char operation) {
     size_t max_size = std::max(first.digits_.size(), second.digits_.size());
     big_integer a = first;
     big_integer b = second;
@@ -262,11 +232,46 @@ big_integer binary_operations(big_integer &first, big_integer &second, char oper
     while (b.digits_.size() != max_size) {
         b.digits_.push_back(0);
     }
+    a = a.is_negative_ ? convert(a) : a;
+    b = b.is_negative_ ? convert(b) : b;
 
-    return big_integer();
+    big_integer answer;
+    answer.digits_.resize(max_size);
+
+    for (size_t i = 0; i < max_size; i++) {
+        answer.digits_[i] = get_operation(a.digits_[i], b.digits_[i], operation);
+    }
+
+    bool check_sign = get_operation(a.is_negative_, b.is_negative_, operation);
+    if (check_sign) {
+        answer.is_negative_ = true;
+        answer = convert(answer);
+        answer.is_negative_ = true;
+    }
+
+    return answer.trim();
+}
+
+big_integer convert(big_integer number) {
+    for (size_t i = 0; i < number.digits_.size(); i++) {
+        number.digits_[i] = ~number.digits_[i];
+    }
+    return number + 1;
 }
 
 
+big_integer operator^(big_integer first, const big_integer &second) {
+    return binary_operations(first, second, '^');
+}
+
+big_integer operator&(big_integer first, const big_integer &second) {
+    return binary_operations(first, second, '&');
+}
+
+
+big_integer operator|(big_integer first, const big_integer &second) {
+    return binary_operations(first, second, '|');
+}
 
 big_integer operator<<(big_integer first, int32_t second) {
     first *= 1 << (second % 32);

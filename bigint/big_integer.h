@@ -71,7 +71,8 @@ private:
     friend uint32_t trial(big_integer &first, big_integer const &second);
     friend void difference(big_integer &first, big_integer const &second, size_t m);
     friend bool smaller(big_integer const &first, big_integer const &second, size_t m);
-    friend big_integer binary_operations(big_integer &first, big_integer &second, char operation);
+    friend big_integer binary_operations(big_integer first, const big_integer &second, char operation);
+    friend big_integer convert(big_integer number);
 };
 
 std::ostream& operator<<(std::ostream& s, big_integer const& a);  // OK

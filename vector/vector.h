@@ -58,7 +58,7 @@ private:
     void push_back_realloc(T const &val);       // O(N) nothrow добавление нового элемента с расширением размера вектора
     void new_buffer(std::size_t new_capacity);  // O(N) weak изменение вместимости вектора
 
-    static void clear_elements(int32_t from, int32_t count, T* ptr);   // Для устранения копипасты
+    static void clear_elements(size_t from, size_t count, T* ptr);   // Для устранения копипасты
     T* try_to_copy(T *from, size_t capacity, size_t count);
 
 private:
@@ -83,18 +83,6 @@ vector<T>::vector(const vector &other) {  // strong
         data_ = nullptr;
     } else {
         data_ = try_to_copy(other.data_, other.size(), other.size());
-        /*data_ = static_cast<T *>(operator new(other.size() * sizeof(T)));
-        size_t i = 0;
-        try {
-            for (; i < other.size(); i++) {
-                new(data_ + i) T(other.data()[i]);
-            }
-        } catch (...) {
-            clear_elements(i - 1, i, data_);
-            operator delete(data_);
-            throw;
-        }*/
-
     }
     size_ = other.size();
     capacity_ = size_;
@@ -109,7 +97,7 @@ vector<T> &vector<T>::operator=(const vector &other) {
 
 template<typename T>
 vector<T>::~vector() {
-    clear_elements(size_ - 1, size_, data_);
+    clear_elements(size_, size_, data_);
     operator delete(data_);
 }
 
@@ -202,7 +190,7 @@ void vector<T>::shrink_to_fit() {
 
 template<typename T>
 void vector<T>::clear() {
-    clear_elements(size_ - 1, size_, data_);
+    clear_elements(size_, size_, data_);
     size_ = 0;
 }
 
@@ -262,7 +250,7 @@ typename vector<T>::iterator vector<T>::erase(vector::const_iterator first, vect
         std::swap(data_[i], data_[i + delta]);
     }
 
-    clear_elements(size_ - 1, delta, data_);
+    clear_elements(size_, delta, data_);
     size_ -= delta;
     return data_ + to;
 }
@@ -284,34 +272,24 @@ void vector<T>::new_buffer(std::size_t new_capacity) {
     assert(new_capacity >= size_);
 
     T *new_data = try_to_copy(data_, new_capacity, size_);
-    /*T *new_data = static_cast<T *>(operator new(new_capacity * sizeof(T)));
-    size_t i = 0;
-    try {
-        for (; i < size_; i++) {
-            new(new_data + i) T(data_[i]);
-        }
-    }
-    catch (...) {
-        clear_elements(i - 1, i, new_data);
-        operator delete(new_data);
-        throw;
-    }*/
 
     // !!!FIXED!!! убрал вызов своего дуструктора, весь необходимый функционал был вынесен в clear_elements()
-    clear_elements(size_ - 1, size_, data_);
+    clear_elements(size_, size_, data_);
     operator delete(data_);
     data_ = new_data;
     capacity_ = new_capacity;
 }
 
 // !!!FIXED!!! убрана вся копипаста за счёт этого метода
+// UPD:: сделал static, добавил указатель, заменил int32_t на size_t
 template<typename T>
-static void vector<T>::clear_elements(int32_t from, int32_t count, T* ptr) {
-    for (int32_t i = from; i > from - count; i--) {
-        ptr[i].~T();
+void vector<T>::clear_elements(size_t from, size_t count, T* ptr) {
+    for (size_t i = from; i > from - count; i--) {
+        ptr[i - 1].~T();
     }
 }
 
+// UPD:: вынес в абстракцию копирование из new_buffer и из конструктора
 template<typename T>
 T* vector<T>::try_to_copy(T *from, size_t capacity, size_t count) {
     T* new_data_ = static_cast<T *>(operator new(capacity * sizeof(T)));
@@ -321,7 +299,7 @@ T* vector<T>::try_to_copy(T *from, size_t capacity, size_t count) {
             new(new_data_ + i) T(from[i]);
         }
     } catch (...) {
-        clear_elements(i - 1, i, new_data_);
+        clear_elements(i, i, new_data_);
         operator delete(new_data_);
         throw;
     }

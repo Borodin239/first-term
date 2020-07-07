@@ -4,6 +4,7 @@
 #include "big_integer.h"
 #include <string>
 #include <algorithm>
+#include <iostream>
 
 typedef unsigned long long int uint128_t __attribute__ ((mode (TI)));
 
@@ -242,7 +243,7 @@ big_integer binary_operations(big_integer first, const big_integer &second, char
         answer.digits_[i] = get_operation(a.digits_[i], b.digits_[i], operation);
     }
 
-    bool check_sign = get_operation(a.is_negative_, b.is_negative_, operation);
+    bool check_sign = get_operation(first.is_negative_, second.is_negative_, operation);
     if (check_sign) {
         answer.is_negative_ = true;
         answer = convert(answer);
@@ -253,10 +254,12 @@ big_integer binary_operations(big_integer first, const big_integer &second, char
 }
 
 big_integer convert(big_integer number) {
+    number.is_negative_ = false;
     for (size_t i = 0; i < number.digits_.size(); i++) {
         number.digits_[i] = ~number.digits_[i];
     }
-    return number + 1;
+    number += 1;
+    return number;
 }
 
 
@@ -321,30 +324,37 @@ big_integer operator+(big_integer first, const big_integer &second) {
     }
 
     size_t max_size = std::max(first.digits_.size(), second.digits_.size());
-    first.digits_.resize(max_size);
-    uint64_t res;
+    big_integer answer;
+    answer.digits_.resize(max_size);
+    uint64_t res = 0;
     uint64_t shift = 0;
     for (size_t i = 0; i < max_size; i++) {
-        res = first.digits_[i] + shift;
-        if (i < second.digits_.size()) {
-            res += second.digits_[i];
+        res = shift;
+        if (i < first.digits_.size()) {
+            res += static_cast<uint64_t>(first.digits_[i]);
         }
-        first.digits_[i] = static_cast<uint32_t> (res % POW2);
+        if (i < second.digits_.size()) {
+            res += static_cast<uint64_t>(second.digits_[i]);
+        }
+        answer.digits_[i] = static_cast<uint32_t> (res % POW2);
         shift = res / POW2;
     }
-    first.digits_.push_back(shift);
-    return first.trim();
+    answer.digits_.push_back(shift);
+    return answer.trim();
 }
 
 big_integer operator-(big_integer first, const big_integer &second) {
 
     // оба отрицательные -- вычитаем из модуля второго модуль первого
     if (first.is_negative_ && second.is_negative_) {
-        return (-second) - (-first);
+        return -(-first - -second);
     }
     // первое отрицательное, второе - положительное => сложение отрицательных чисел
+    if (first.is_negative_ && !second.is_negative_) {
+        return -(-first + second);
+    }
     // второе отрицательное, первое - положительное => сложение первого и модуля второго
-    if (first.is_negative_ != second.is_negative_) {
+    if (second.is_negative_ && !first.is_negative_) {
         return first + (-second);
     }
     // оба положительные, второе больше первого
@@ -376,7 +386,7 @@ big_integer operator*(big_integer first, const big_integer &second) {
     }
     big_integer answer;
     answer.is_negative_ = first.is_negative_ != second.is_negative_;
-    answer.digits_.resize(first.digits_.size() + second.digits_.size());
+    answer.digits_.resize(first.digits_.size() + second.digits_.size() + 1);
     for (size_t i = 0; i < first.digits_.size(); i++) {
         uint64_t shift = 0;
         uint64_t res;

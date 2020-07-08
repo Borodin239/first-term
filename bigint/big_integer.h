@@ -13,6 +13,7 @@ public:
     big_integer();  // OK
     big_integer(big_integer const& other);  // OK
     big_integer(int32_t a);  // OK
+    big_integer(uint64_t arg);
     explicit big_integer(std::string const& str);  // OK
     ~big_integer();  // OK
 
@@ -68,9 +69,9 @@ private:
     bool is_negative_{};
 
     big_integer& trim();
-    friend uint32_t trial(big_integer &first, big_integer const &second);
-    friend void difference(big_integer &first, big_integer const &second, size_t m);
-    friend bool smaller(big_integer const &first, big_integer const &second, size_t m);
+    friend uint32_t trial(big_integer &first, big_integer const &second, uint64_t m, uint64_t k);
+    friend void difference(big_integer &first, big_integer const &second, uint64_t m, uint64_t k);
+    friend bool smaller(big_integer const &first, big_integer const &second, uint64_t m, uint64_t k);
     friend big_integer binary_operations(big_integer first, const big_integer &second, char operation);
     friend big_integer convert(big_integer number);
 };

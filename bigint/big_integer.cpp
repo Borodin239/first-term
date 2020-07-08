@@ -23,6 +23,12 @@ big_integer::big_integer(int32_t arg) : digits_(1), is_negative_(arg < 0) {
     }
 }
 
+big_integer::big_integer(uint64_t arg) : digits_(2), is_negative_(false) {
+    digits_[0] = static_cast<uint32_t>(arg);
+    digits_[1] = static_cast<uint32_t>(arg >> 32u);
+    trim();
+}
+
 big_integer::big_integer(std::string const &str) : digits_(1, 0) {
     if (str.empty() || str == "0" || str == "-0") {
         return;
@@ -280,7 +286,7 @@ big_integer operator|(big_integer first, const big_integer &second) {
 
 big_integer operator<<(big_integer first, int32_t second) {
     bool sign = first.is_negative_;
-    first = first * static_cast<uint32_t>(1 << (second % 32));
+    first = first * (1 << (second % 32));
     if (second > 32 && first != 0) {
         second /= 32;
         first.digits_.insert(first.digits_.begin(), second, 0);
@@ -297,7 +303,7 @@ big_integer operator>>(big_integer first, int32_t second) {
     uint32_t shift_digits = second / 32;
     uint32_t mod = 1 << (second % 32);
 
-    big_integer temp = first / mod;
+    big_integer temp = first / big_integer(static_cast<uint64_t>(mod));
 
     if (temp.digits_.size() - shift_digits <= 0) {
         return 0;
@@ -418,11 +424,11 @@ big_integer operator/(big_integer first, const big_integer &second) {
     if (first == 0) {
         return 0;
     }
-    big_integer a = first;
-    a.is_negative_ = false;
-    big_integer b = second;
-    b.is_negative_ = false;
-    if (b > a) {
+    big_integer r = first;
+    r.is_negative_ = false;
+    big_integer d = second;
+    d.is_negative_ = false;
+    if (r < d) {
         return 0;
     }
 
@@ -440,66 +446,60 @@ big_integer operator/(big_integer first, const big_integer &second) {
         }
         std::reverse(answer.digits_.begin(), answer.digits_.end());
     } else {
-        big_integer dq;
-        a.digits_.push_back(0);
-        size_t m = b.digits_.size();
-        size_t n = a.digits_.size();
-        answer.digits_.resize(n - m);
-        uint32_t qt = 0;
-        size_t j = answer.digits_.size() - 1;
-        for (size_t i = m + 1; i <= n; i++) {
-            qt = trial(a, b);
-            dq = b * qt;
-            if (!smaller(a, dq, m + 1)) {
+        size_t n = r.digits_.size();
+        size_t m = d.digits_.size();
+        uint64_t f = POW2 / (static_cast<uint64_t>(d.digits_[m - 1]) + 1);
+        answer.digits_.resize(n - m + 1);
+        r *= f;
+        d *= f;
+        r.digits_.push_back(0);
+        for (ptrdiff_t k = n - m; k >= 0; k--) {
+            uint32_t qt = trial(r, d, m, static_cast<uint64_t>(k));
+            big_integer qt_mul = big_integer(static_cast<uint64_t>(qt));
+            big_integer dq = d * qt_mul;
+            dq.digits_.resize(m + 1);
+            if (smaller(r, dq, m, static_cast<uint64_t>(k))) {
                 qt--;
-                dq = b * qt;
+                dq = big_integer(d) / qt_mul;
             }
-            answer.digits_[j] = qt;
-            difference(a, dq, m + 1);
-            if (a.digits_.size() != 0) {
-                a.digits_.pop_back();
-            }
-            j--;
+            answer.digits_[k] = qt;
+            difference(r, dq, m, static_cast<uint64_t>(k));
         }
     }
     return answer.trim();
 }
 
-uint32_t trial(big_integer &first, big_integer const &second) {  // OK
-    uint128_t a = ((static_cast<uint128_t>(first.digits_[first.digits_.size() - 1]) << 64) +
-                   (static_cast<uint128_t>(first.digits_[first.digits_.size() - 2]) << 32) +
-                   static_cast<uint128_t>(first.digits_[first.digits_.size() - 3]));
-    uint128_t b = ((static_cast<uint128_t>(second.digits_[second.digits_.size() - 1]) << 32) +
-                   static_cast<uint128_t>(second.digits_[second.digits_.size() - 2]));
-    return std::min(static_cast<uint32_t>(a / b), UINT32_MAX);
+// OK
+uint32_t trial(big_integer &first, big_integer const &second, uint64_t const m, uint64_t const k) {  // OK
+    uint128_t a = ((static_cast<uint128_t>(first.digits_[k + m]) << 64) +
+                   (static_cast<uint128_t>(first.digits_[k + m - 1]) << 32) +
+                   static_cast<uint128_t>(first.digits_[k + m - 2]));
+    uint128_t b = ((static_cast<uint128_t>(second.digits_[m - 1]) << 32) +
+                   static_cast<uint128_t>(second.digits_[m - 2]));
+    return std::min(static_cast<uint32_t>(a / b), static_cast<uint32_t>(POW2-1));
 }
 
-
-bool smaller(big_integer const &first, big_integer const &second, size_t id) {
-    for (size_t i = 1; i <= first.digits_.size(); i++) {
-        if (id - i >= second.digits_.size()) {
-            if (first.digits_[first.digits_.size() - i] != 0) {
-                return first.digits_[first.digits_.size() - i] > 0;
-            }
-        } else {
-            if (first.digits_[first.digits_.size() - i] != second.digits_[id - i]) {
-                return first.digits_[first.digits_.size() - i] > second.digits_[id - i];
-            }
+// OK
+bool smaller(big_integer const &first, big_integer const &second, uint64_t const m, uint64_t const k) {
+    uint64_t i = m;
+    uint64_t j = 0;
+    while (i != j) {
+        if (first.digits_[i + k] != second.digits_[i]) {
+            j = i;
+        }
+        else {
+            i--;
         }
     }
-    return true;
+    return first.digits_[i + k] < second.digits_[i];
 }
 
-void difference(big_integer &first, big_integer const &second, size_t m) {  // OK
+// OK
+void difference(big_integer &first, big_integer const &second, uint64_t m, uint64_t k) {
     int64_t borrow = 0;
-    size_t k = first.digits_.size() - m;
-    for (size_t i = 0; i < m; i++) {
-        uint32_t val = 0;
-        if (i < second.digits_.size()) {
-            val = second.digits_[i];
-        }
-        uint64_t diff = static_cast<uint64_t>(first.digits_[k + i]) - val + POW2 - borrow;
-        first.digits_[k + i] = diff % POW2;
+    for (size_t i = 0; i <= m; i++) {
+        uint64_t diff = static_cast<uint64_t>(first.digits_[k + i]) - second.digits_[i] + POW2 - borrow;
+        first.digits_[k + i] = static_cast<uint32_t>(diff % POW2);
         borrow = 1 - diff / POW2;
     }
 }

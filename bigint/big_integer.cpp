@@ -17,8 +17,7 @@ big_integer::big_integer(const big_integer &arg) = default;
 big_integer::big_integer(int32_t arg) : digits_(1), is_negative_(arg < 0) {
     if (arg == INT32_MIN) {
         digits_[0] = static_cast<uint32_t>(INT32_MAX) + 1;
-    }
-    else {
+    } else {
         digits_[0] = static_cast<uint32_t>(abs(arg));
     }
 }
@@ -30,7 +29,7 @@ big_integer::big_integer(uint64_t arg) : digits_(2), is_negative_(false) {
 }
 
 big_integer::big_integer(std::string const &str) : digits_(1, 0) {
-    if (str.empty() || str == "0" || str == "-0") {
+    if (str.empty()) {
         return;
     }
     size_t pos = 0;
@@ -46,6 +45,7 @@ big_integer::big_integer(std::string const &str) : digits_(1, 0) {
     if (str[0] == '-') {
         is_negative_ = true;
     }
+    trim();
 }
 
 big_integer::~big_integer() = default;
@@ -158,23 +158,9 @@ bool operator>(const big_integer &first, const big_integer &second) {
         return !first.is_negative_;
     }
     // Одинаковое кол-во цифр и одинаковые знаки
-    if (second.is_negative_) {
-        for (size_t i = first.digits_.size(); i != 0; i--) {
-            if (first.digits_[i - 1] < second.digits_[i - 1]) {
-                return true;
-            }
-            if (first.digits_[i - 1] > second.digits_[i - 1]) {
-                return false;
-            }
-        }
-        return false;
-    }
     for (size_t i = first.digits_.size(); i != 0; i--) {
-        if (first.digits_[i - 1] > second.digits_[i - 1]) {
-            return true;
-        }
-        if (first.digits_[i - 1] < second.digits_[i - 1]) {
-            return false;
+        if (first.digits_[i - 1] != second.digits_[i - 1]) {
+            return first.digits_[i - 1] > second.digits_[i - 1] == !first.is_negative_;
         }
     }
     return false;
@@ -201,24 +187,16 @@ bool operator!=(big_integer const &first, big_integer const &second) {
 }
 
 
-
 // Убирает лишние 0 вначале числа
 big_integer &big_integer::trim() {
-    size_t i = digits_.size();
-    while (i != 1) {
-        if (digits_[i - 1] == 0) {
-            i--;
-            digits_.pop_back();
-        } else {
-            break;
-        }
+    while (digits_.size() > 1 && digits_.back() == 0) {
+        digits_.pop_back();
     }
-    if (i == 1 && digits_[0] == 0) {
+    if (digits_.size() == 1 && digits_[0] == 0) {
         is_negative_ = false;
     }
     return *this;
 }
-
 
 
 uint32_t get_operation(uint32_t first, uint32_t second, char operation) {
@@ -425,9 +403,8 @@ big_integer operator/(big_integer first, const big_integer &second) {
         return 0;
     }
     big_integer r = first;
-    r.is_negative_ = false;
     big_integer d = second;
-    d.is_negative_ = false;
+    d.is_negative_ = r.is_negative_ = false;
     if (r < d) {
         return 0;
     }
@@ -476,7 +453,7 @@ uint32_t trial(big_integer &first, big_integer const &second, uint64_t const m, 
                    static_cast<uint128_t>(first.digits_[k + m - 2]));
     uint128_t b = ((static_cast<uint128_t>(second.digits_[m - 1]) << 32) +
                    static_cast<uint128_t>(second.digits_[m - 2]));
-    return std::min(static_cast<uint32_t>(a / b), static_cast<uint32_t>(POW2-1));
+    return std::min(static_cast<uint32_t>(a / b), static_cast<uint32_t>(POW2 - 1));
 }
 
 // OK
@@ -486,8 +463,7 @@ bool smaller(big_integer const &first, big_integer const &second, uint64_t const
     while (i != j) {
         if (first.digits_[i + k] != second.digits_[i]) {
             j = i;
-        }
-        else {
+        } else {
             i--;
         }
     }

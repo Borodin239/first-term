@@ -9,12 +9,13 @@
 typedef unsigned long long int uint128_t __attribute__ ((mode (TI)));
 
 const uint64_t POW2 = static_cast<uint64_t>(UINT32_MAX) + 1;
+const big_integer ZERO = big_integer(0);
 
-big_integer::big_integer() : digits_(1, 0), is_negative_(false) {}
+big_integer::big_integer() : digits_(0), is_negative_(false) {}
 
 big_integer::big_integer(const big_integer &arg) = default;
 
-big_integer::big_integer(int32_t arg) : digits_(1), is_negative_(arg < 0) {
+big_integer::big_integer(int32_t arg) : digits_(0), is_negative_(arg < 0) {
     if (arg == INT32_MIN) {
         digits_[0] = static_cast<uint32_t>(INT32_MAX) + 1;
     } else {
@@ -23,12 +24,13 @@ big_integer::big_integer(int32_t arg) : digits_(1), is_negative_(arg < 0) {
 }
 
 big_integer::big_integer(uint64_t arg) : digits_(2), is_negative_(false) {
+    digits_.resize(2);
     digits_[0] = static_cast<uint32_t>(arg);
     digits_[1] = static_cast<uint32_t>(arg >> 32u);
     trim();
 }
 
-big_integer::big_integer(std::string const &str) : digits_(1, 0) {
+big_integer::big_integer(std::string const &str) : digits_(0) {
     if (str.empty()) {
         return;
     }
@@ -113,7 +115,7 @@ big_integer big_integer::operator+() const {
 big_integer big_integer::operator-() const {
     big_integer temp = *this;
     temp.trim();
-    if (temp != 0) {
+    if (temp != ZERO) {
         temp.is_negative_ = !temp.is_negative_;
     }
     return temp;
@@ -265,16 +267,22 @@ big_integer operator|(big_integer first, const big_integer &second) {
 big_integer operator<<(big_integer first, int32_t second) {
     bool sign = first.is_negative_;
     first = first * (1 << (second % 32));
-    if (second > 32 && first != 0) {
+    if (second > 32 && first != ZERO) {
         second /= 32;
-        first.digits_.insert(first.digits_.begin(), second, 0);
+        //std::reverse(first.digits_.begin(), first.digits_.end());
+        first.digits_.reverse();
+        for (size_t i = 0; i < second; i++) {
+            first.digits_.push_back(0);
+        }
+        first.digits_.reverse();
+        //std::reverse(first.digits_.begin(), first.digits_.end());
     }
     first.is_negative_ = sign;
     return first;
 }
 
 big_integer operator>>(big_integer first, int32_t second) {
-    if (first == 0) {
+    if (first == ZERO) {
         return first;
     }
 
@@ -287,17 +295,14 @@ big_integer operator>>(big_integer first, int32_t second) {
         return 0;
     } else {
         size_t len = temp.digits_.size() - shift_digits;
-        std::vector<uint32_t> res(len);
+        first.digits_.resize(len);
         for (size_t i = 0; i < len; ++i) {
-            res[i] = temp.digits_[i + shift_digits];
+            first.digits_[i] = temp.digits_[i + shift_digits];
         }
-        big_integer answer;
-        answer.digits_ = res;
-        answer.is_negative_ = first.is_negative_;
         if (first.is_negative_) {
-            --answer;
+            --first;
         }
-        return answer;
+        return first.trim();
     }
 }
 
@@ -370,7 +375,7 @@ big_integer operator-(big_integer first, const big_integer &second) {
 }
 
 big_integer operator*(big_integer first, const big_integer &second) {
-    if (first == 0 || second == 0) {
+    if (first == ZERO || second == ZERO) {
         return big_integer(0);
     }
     big_integer answer;
@@ -421,7 +426,8 @@ big_integer operator/(big_integer first, const big_integer &second) {
             answer.digits_.push_back(static_cast<uint32_t>((temp / second.digits_[0]) % POW2));
             shift = temp % second.digits_[0];
         }
-        std::reverse(answer.digits_.begin(), answer.digits_.end());
+        //std::reverse(answer.digits_.begin(), answer.digits_.end());
+        answer.digits_.reverse();
     } else {
         size_t n = r.digits_.size();
         size_t m = d.digits_.size();
@@ -487,10 +493,10 @@ big_integer operator%(big_integer first, const big_integer &second) {
 std::string to_string(const big_integer &number) {
     big_integer temp(number);
     std::string answer;
-    if (temp == 0) {
+    if (temp == ZERO) {
         return "0";
     }
-    while (temp != 0) {
+    while (temp != ZERO) {
         answer += static_cast<char>('0' + (temp % 10).digits_[0]);
         temp /= 10;
     }

@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <string>
+#include <buffer.h>
 
 struct big_integer {
 public:
@@ -65,7 +66,7 @@ public:
     friend big_integer operator>>(big_integer a, int32_t b);  // OK
 
 private:
-    std::vector<uint32_t> digits_;
+    buffer digits_;
     bool is_negative_{};
 
     big_integer& trim();

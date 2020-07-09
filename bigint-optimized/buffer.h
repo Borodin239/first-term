@@ -8,21 +8,8 @@
 #include <vector>
 #include <algorithm>
 #include <cstdint>
-
-struct my_vector {
-    std::vector<uint32_t> digits_;
-    size_t link_counter;
-
-    ~my_vector() = default;
-
-    my_vector() = default;
-
-    my_vector(my_vector &vector_) : digits_(vector_.digits_), link_counter(1) {}
-
-    my_vector(std::vector<uint32_t> vector_) : digits_(vector_), link_counter(1) {}
-
-    my_vector(uint32_t digits[], size_t size) : digits_(digits, digits + size), link_counter(1) {}
-};
+#include <my_vector.h>
+#include <assert.h>
 
 struct buffer {
 
@@ -52,14 +39,14 @@ struct buffer {
     uint32_t &operator[](size_t ind) {  // OK
         if (large_) {
             single();
-            return (*vector_).digits_[ind];
+            return vector_->digits_[ind];
         }
-        return digits_[ind];;
+        return digits_[ind];
     }
 
     uint32_t const &operator[](size_t ind) const {  // OK
         if (large_) {
-            return (*vector_).digits_[ind];
+            return vector_->digits_[ind];
         }
         return digits_[ind];
     }
@@ -77,7 +64,7 @@ struct buffer {
             single();
             vector_->digits_.push_back(a);
         } else {
-            if (size_ == 2) {
+            if (size_ == CAPACITY) {
                 large_ = true;
                 vector_ = new my_vector(digits_, 2);
                 vector_->digits_.push_back(a);
@@ -94,27 +81,21 @@ struct buffer {
             vector_->digits_.pop_back();
         }
         size_--;
-        /*if (large_ && size_ == 2) {
-            single();
-            uint32_t first = vector_->digits_[0];
-            uint32_t second = vector_->digits_[1];
-            delete vector_;
-            digits_[0] = first;
-            digits_[1] = second;
-            large_ = false;
-        }*/
     }
 
+    // UPD:: исправил тот факт, что у large иногда не вызывался resize_, так же убрал лишний код
     void resize(size_t size) {
-        if (size > 2) {
+        if (size > CAPACITY) {
             if (!large_) {
-                std::vector<uint32_t> curr(digits_, digits_ + size_);
-                curr.resize(size);
-                vector_ = new my_vector(curr);
+                vector_ = new my_vector(digits_, size_);
                 large_ = true;
+                resize(size);
             } else {
                 vector_->digits_.resize(size);
             }
+        }
+        else if (large_){
+            vector_->digits_.resize(size);
         }
         size_ = size;
     }
@@ -163,8 +144,9 @@ struct buffer {
 private:
     bool large_;
     size_t size_;
+    static constexpr size_t CAPACITY = 2;
     union {
-        uint32_t digits_[2];
+        uint32_t digits_[CAPACITY];
         my_vector *vector_;
     };
 };

@@ -271,7 +271,7 @@ big_integer operator<<(big_integer first, int32_t second) {
         second /= 32;
         //std::reverse(first.digits_.begin(), first.digits_.end());
         first.digits_.reverse();
-        for (size_t i = 0; i < second; i++) {
+        for (int32_t i = 0; i < second; i++) {
             first.digits_.push_back(0);
         }
         first.digits_.reverse();

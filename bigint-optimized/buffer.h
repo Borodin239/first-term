@@ -94,7 +94,7 @@ struct buffer {
             vector_->digits_.pop_back();
         }
         size_--;
-        if (large_ && size_ == 2) {
+        /*if (large_ && size_ == 2) {
             single();
             uint32_t first = vector_->digits_[0];
             uint32_t second = vector_->digits_[1];
@@ -102,16 +102,16 @@ struct buffer {
             digits_[0] = first;
             digits_[1] = second;
             large_ = false;
-        }
+        }*/
     }
 
     void resize(size_t size) {
         if (size > 2) {
-            large_ = true;
-            if (size_ <= 2) {
+            if (!large_) {
                 std::vector<uint32_t> curr(digits_, digits_ + size_);
                 curr.resize(size);
                 vector_ = new my_vector(curr);
+                large_ = true;
             } else {
                 vector_->digits_.resize(size);
             }
@@ -142,25 +142,22 @@ struct buffer {
     }
 
     void single() {
-        //vector_ = vector_->make_unique_data();
         if (vector_->link_counter != 1) {
             vector_->link_counter--;
             vector_ = new my_vector(*vector_);
         }
     }
 
-    // TODO:: подумай что с этим можно сделать
     friend bool operator==(buffer const &first, buffer const &second) {
         if (first.size_ != second.size_) {
             return false;
         }
-        if (first.large_) {
-            return first.vector_->digits_ == second.vector_->digits_;
+        for (size_t i = 0; i < first.size(); i++) {
+            if (first[i] != second[i]) {
+                return false;
+            }
         }
-        if (first.size_ == 1) {
-            return first.digits_[0] == second.digits_[0];
-        }
-        return first.digits_[0] == second.digits_[0] && first.digits_[1] == second.digits_[1];
+        return true;
     }
 
 private:

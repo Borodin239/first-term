@@ -6,6 +6,8 @@
 #define BIGINT_BUFFER_H
 
 #include <vector>
+#include <algorithm>
+#include <cstdint>
 
 struct my_vector {
     std::vector<uint32_t> digits_;

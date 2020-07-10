@@ -93,8 +93,7 @@ struct buffer {
             } else {
                 vector_->digits_.resize(size);
             }
-        }
-        else if (large_){
+        } else if (large_) {
             vector_->digits_.resize(size);
         }
         size_ = size;
